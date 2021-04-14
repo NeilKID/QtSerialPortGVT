@@ -1,1 +1,1 @@
-# QtSerialPortGVT
+# QtSerialPortGVT接收延迟测试
