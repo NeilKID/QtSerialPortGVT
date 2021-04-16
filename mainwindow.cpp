@@ -137,8 +137,11 @@ void MainWindow::serialPort_readyRead()
             recv.append(' ');
 
             //计算通讯延迟时间
-            int delayTime = msecEnd - recvMsecStart;
-            recv.append(QString::number(delayTime));
+            int delayTimeSecond = secondEnd - recvSecondStart;
+            recv.append(QString::number(delayTimeSecond));
+            recv.append(':');
+            int delayTimeMsec = msecEnd - recvMsecStart;
+            recv.append(QString::number(delayTimeMsec));
         }
     }
 
