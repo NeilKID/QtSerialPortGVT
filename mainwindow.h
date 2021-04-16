@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSerialPort>        //提供访问串口的功能
 #include <QSerialPortInfo>    //提供系统中存在的串口的信息
+#include <QTime>              //获取当前时间
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -30,9 +31,11 @@ private:
         char ch[4];
     }sendUnion,recvUnion;
     void send_float_char(float data, char *s);
+    void send_int_char(int data, char *s);
     void send_ushort_char(unsigned short data, char *s);
     void send_short_char(short data, char *s);
     void recv_float_char(float &data, char *s);
+    void recv_int_char(int &data, char *s);
     void recv_ushort_char(unsigned short &data, char *s);
     void recv_short_char(short &data, char *s);
 

@@ -35,6 +35,7 @@ void MainWindow::serialPort_readyRead()
     {
         if (buffer[count] == '#')
         {
+            /*
             //接收4字节经度数据并转为float数据（保留2位小数）显示
             char lonCh[4];
             for(int i=0;i<4;i++)
@@ -78,6 +79,66 @@ void MainWindow::serialPort_readyRead()
             //接收1字节定位模式并以字符串显示
             char locMoCh = buffer[13];
             recv.append(locMoCh);
+            */
+
+            //延迟测试，解析发送端数据
+            char recvSequCh = buffer[1];
+            recv.append(QString(recvSequCh));
+            recv.append(' ');
+            //接收2字节转角并以字符串显示
+            char recvSteerAngleCh[2];
+            for(int i=0;i<2;i++)
+            {
+                recvSteerAngleCh[i]=buffer[i+2];
+            }
+            signed short recvSteerAngleSh = 0;
+            recv_short_char(recvSteerAngleSh,recvSteerAngleCh);
+            recv.append(QString::number(recvSteerAngleSh));
+            recv.append(' ');
+            //接收2字节速度并以字符串显示
+            char recvVelocityCh[2];
+            for(int i=0;i<2;i++)
+            {
+                recvVelocityCh[i]=buffer[i+4];
+            }
+            unsigned short recvVelocityUS = 0;
+            recv_ushort_char(recvVelocityUS,recvVelocityCh);
+            recv.append(QString::number(recvVelocityUS));
+            recv.append(' ');
+            //接收2字节发送时间秒并以字符串显示
+            char recvSecondStartCh[4];
+            for(int i=0;i<4;i++)
+            {
+                recvSecondStartCh[i]=buffer[i+6];
+            }
+            int recvSecondStart = 0;
+            recv_int_char(recvSecondStart,recvSecondStartCh);
+            recv.append(QString::number(recvSecondStart));
+            recv.append(':');
+            //接收2字节发送时间毫秒并以字符串显示
+            char recvMsecStartCh[4];
+            for(int i=0;i<4;i++)
+            {
+                recvMsecStartCh[i]=buffer[i+10];
+            }
+            int recvMsecStart = 0;
+            recv_int_char(recvMsecStart,recvMsecStartCh);
+            recv.append(QString::number(recvMsecStart));
+            recv.append(' ');
+
+            //接收2字节接收时间秒并以字符串显示
+            QTime current_time_end = QTime::currentTime();
+            int secondEnd = current_time_end.second();
+            recv.append(QString::number(secondEnd));
+            recv.append(':');
+            //接收2字节接收时间毫秒并以字符串显示
+            int msecEnd = current_time_end.msec();
+            recv.append(QString::number(msecEnd));
+            recv.append(' ');
+
+            //计算通讯延迟时间
+            int delayTime = msecEnd - recvMsecStart;
+            recv.append(QString::number(delayTime));
         }
     }
 
@@ -218,7 +279,7 @@ void MainWindow::on_sendButton_clicked()
     sequCh[0] = (char)sequIn;
     QByteArray sequBa = QByteArray(sequCh,1);
 
-    //将unsigned short转角转为2字节的char数组
+    //将short转角转为2字节的char数组
     short swSeSh = strSendSw.toShort();
     char swSeCh[2];
     send_short_char(swSeSh,swSeCh);
@@ -231,10 +292,23 @@ void MainWindow::on_sendButton_clicked()
 //    QByteArray vecSeBa = QByteArray(vecSeCh,4);
 
     //将unsigned short速度转为2节的char数组
-    unsigned short vecSeUS = strSendVec.toUShort();
-    char vecSeCh[2];
-    send_ushort_char(vecSeUS,vecSeCh);
-    QByteArray vecSeBa = QByteArray(vecSeCh,2);
+    unsigned short velSeUS = strSendVec.toUShort();
+    char velSeCh[2];
+    send_ushort_char(velSeUS,velSeCh);
+    QByteArray vecSeBa = QByteArray(velSeCh,2);
+
+    //获取当前时间，包括秒与毫秒
+    QTime current_time_start = QTime::currentTime();
+
+    int secondStart = current_time_start.second();
+    char secondStartChar[4];
+    send_int_char(secondStart,secondStartChar);
+    QByteArray secondStartBa = QByteArray(secondStartChar,4);
+
+    int msecStart = current_time_start.msec();
+    char msecStartChar[4];
+    send_int_char(msecStart,msecStartChar);
+    QByteArray msecStartBa = QByteArray(msecStartChar,4);
 
     //将1字节起始符、转角2字节、速度4字节写入发送ByteArray字节串
     QByteArray sendData;
@@ -242,6 +316,8 @@ void MainWindow::on_sendButton_clicked()
     sendData.append(sequBa);
     sendData.append(swSeBa);
     sendData.append(vecSeBa);
+    sendData.append(secondStartBa);
+    sendData.append(msecStartBa);
 
     //将ByteArray数据写入串口发送
     serial.write(sendData);
@@ -269,6 +345,16 @@ void MainWindow::send_float_char(float data, char *s)
     }
 }
 
+//发送数据int转char函数
+void MainWindow::send_int_char(int data, char *s)
+{
+    sendUnion.ii = data;
+    for(int i=0;i<4;i++)
+    {
+        s[i] = sendUnion.ch[i];
+    }
+}
+
 //发送数据unsigned short转char函数
 void MainWindow::send_ushort_char(unsigned short data, char *s)
 {
@@ -289,6 +375,7 @@ void MainWindow::send_short_char(short data, char *s)
     }
 }
 
+
 //接收数据char转float函数
 void MainWindow::recv_float_char(float &data, char *s)
 {
@@ -299,6 +386,15 @@ void MainWindow::recv_float_char(float &data, char *s)
     data = recvUnion.ff;
 }
 
+//接收数据char转int函数
+void MainWindow::recv_int_char(int &data, char *s)
+{
+    for(int i=0;i<4;i++)
+    {
+        recvUnion.ch[i] = s[i];
+    }
+    data = recvUnion.ii;
+}
 
 //接收数据char转unsigned short函数
 void MainWindow::recv_ushort_char(unsigned short &data, char *s)
