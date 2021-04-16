@@ -35,81 +35,11 @@ void MainWindow::serialPort_readyRead()
     {
         if (buffer[count] == '#')
         {
-            /*
-            //接收4字节经度数据并转为float数据（保留2位小数）显示
-            char lonCh[4];
-            for(int i=0;i<4;i++)
-            {
-                lonCh[i] = buffer[i+1];
-            }
-            float lonFl = 0.0;
-            recv_float_char(lonFl,lonCh);
-            recv.append(QString::number(lonFl,'f',2));
-            recv.append(' ');
-            //接收4字节经度数据并转为float数据（保留2位小数）显示
-            char latCh[4];
-            for(int i=0;i<4;i++)
-            {
-                latCh[i] = buffer[i+5];
-            }
-            float latFl = 0.0;
-            recv_float_char(latFl,latCh);
-            recv.append(QString::number(latFl,'f',2));
-            recv.append(' ');
-            //接收2字节航向角并转为int数据显示
-            char yawCh[2];
-            for(int i=0;i<2;i++)
-            {
-                yawCh[i] = buffer[i+9];
-            }
-            unsigned short yawUS = 0;
-            recv_ushort_char(yawUS,yawCh);
-            recv.append(QString::number(yawUS));
-            recv.append(' ');
-            //接收2字节速度并转为int数据显示
-            char vecCh[2];
-            for(int i=0;i<2;i++)
-            {
-                vecCh[i] = buffer[i+11];
-            }
-            unsigned short vecUS = 0;
-            recv_ushort_char(vecUS,vecCh);
-            recv.append(QString::number(vecUS));
-            recv.append(' ');
-            //接收1字节定位模式并以字符串显示
-            char locMoCh = buffer[13];
-            recv.append(locMoCh);
-            */
-
-            //延迟测试，解析发送端数据
-            char recvSequCh = buffer[1];
-            recv.append(QString(recvSequCh));
-            recv.append(' ');
-            //接收2字节转角并以字符串显示
-            char recvSteerAngleCh[2];
-            for(int i=0;i<2;i++)
-            {
-                recvSteerAngleCh[i]=buffer[i+2];
-            }
-            signed short recvSteerAngleSh = 0;
-            recv_short_char(recvSteerAngleSh,recvSteerAngleCh);
-            recv.append(QString::number(recvSteerAngleSh));
-            recv.append(' ');
-            //接收2字节速度并以字符串显示
-            char recvVelocityCh[2];
-            for(int i=0;i<2;i++)
-            {
-                recvVelocityCh[i]=buffer[i+4];
-            }
-            unsigned short recvVelocityUS = 0;
-            recv_ushort_char(recvVelocityUS,recvVelocityCh);
-            recv.append(QString::number(recvVelocityUS));
-            recv.append(' ');
             //接收2字节发送时间秒并以字符串显示
             char recvSecondStartCh[4];
             for(int i=0;i<4;i++)
             {
-                recvSecondStartCh[i]=buffer[i+6];
+                recvSecondStartCh[i]=buffer[i+1];
             }
             int recvSecondStart = 0;
             recv_int_char(recvSecondStart,recvSecondStartCh);
@@ -119,7 +49,7 @@ void MainWindow::serialPort_readyRead()
             char recvMsecStartCh[4];
             for(int i=0;i<4;i++)
             {
-                recvMsecStartCh[i]=buffer[i+10];
+                recvMsecStartCh[i]=buffer[i+5];
             }
             int recvMsecStart = 0;
             recv_int_char(recvMsecStart,recvMsecStartCh);
@@ -272,33 +202,9 @@ void MainWindow::on_openButton_clicked()
 //点击发送数据
 void MainWindow::on_sendButton_clicked()
 {
-    //从编辑栏读取用户写入的转角与速度，分别存为unsigned short与float
+    //从编辑栏读取用户写入的字符串，使发送数据长度可调节
     QString strSendSw = ui->sendSwTextEdit->toPlainText();
-    QString strSendVec = ui->sendVecTextEdit->toPlainText();
-
-    //发送数据包序列号
-    int sequIn = 1+48 ;
-    char sequCh[1];
-    sequCh[0] = (char)sequIn;
-    QByteArray sequBa = QByteArray(sequCh,1);
-
-    //将short转角转为2字节的char数组
-    short swSeSh = strSendSw.toShort();
-    char swSeCh[2];
-    send_short_char(swSeSh,swSeCh);
-    QByteArray swSeBa = QByteArray(swSeCh,2);
-
-//    //将float速度转为4字节的char数组
-//    float vecSeFl = strSendVec.toFloat();
-//    char vecSeCh[4];
-//    send_float_char(vecSeFl,vecSeCh);
-//    QByteArray vecSeBa = QByteArray(vecSeCh,4);
-
-    //将unsigned short速度转为2节的char数组
-    unsigned short velSeUS = strSendVec.toUShort();
-    char velSeCh[2];
-    send_ushort_char(velSeUS,velSeCh);
-    QByteArray vecSeBa = QByteArray(velSeCh,2);
+    QString strSendVel = ui->sendVecTextEdit->toPlainText();
 
     //获取当前时间，包括秒与毫秒
     QTime current_time_start = QTime::currentTime();
@@ -313,14 +219,17 @@ void MainWindow::on_sendButton_clicked()
     send_int_char(msecStart,msecStartChar);
     QByteArray msecStartBa = QByteArray(msecStartChar,4);
 
-    //将1字节起始符、转角2字节、速度4字节写入发送ByteArray字节串
+    //输入测试字符串
+    QByteArray sendSwBa = strSendSw.toUtf8();
+    QByteArray sendVelBa = strSendVel.toUtf8();
+
+    //将1字节起始符、4字节当前时间秒、4字节当前时间毫秒、若干字节字符串写入发送ByteArray字节串
     QByteArray sendData;
     sendData.append("#");
-    sendData.append(sequBa);
-    sendData.append(swSeBa);
-    sendData.append(vecSeBa);
     sendData.append(secondStartBa);
     sendData.append(msecStartBa);
+    sendData.append(sendSwBa);
+    sendData.append(sendVelBa);
 
     //将ByteArray数据写入串口发送
     serial.write(sendData);
