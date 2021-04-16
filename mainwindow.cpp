@@ -30,54 +30,62 @@ void MainWindow::serialPort_readyRead()
     QString recv = "#";
 //    QString recv = buffer.toHex(':').toUpper().data();//测试是否接收数据
 
-    //初始标识符识别
-    for (int count = 0; count < buffer.length();count++)
+    if (ui->autoSendCheckBox->isChecked())
     {
-        if (buffer[count] == '#')
+        serial.write(buffer);
+        recv.append(QString::fromUtf8("已返回发送数据"));
+    }
+    else
+    {
+        //初始标识符识别
+        for (int count = 0; count < buffer.length();count++)
         {
-            //接收4字节经度数据并转为float数据（保留2位小数）显示
-            char lonCh[4];
-            for(int i=0;i<4;i++)
+            if (buffer[count] == '#')
             {
-                lonCh[i] = buffer[i+1];
+                //接收4字节经度数据并转为float数据（保留2位小数）显示
+                char lonCh[4];
+                for(int i=0;i<4;i++)
+                {
+                    lonCh[i] = buffer[i+1];
+                }
+                float lonFl = 0.0;
+                recv_float_char(lonFl,lonCh);
+                recv.append(QString::number(lonFl,'f',2));
+                recv.append(' ');
+                //接收4字节经度数据并转为float数据（保留2位小数）显示
+                char latCh[4];
+                for(int i=0;i<4;i++)
+                {
+                    latCh[i] = buffer[i+5];
+                }
+                float latFl = 0.0;
+                recv_float_char(latFl,latCh);
+                recv.append(QString::number(latFl,'f',2));
+                recv.append(' ');
+                //接收2字节航向角并转为int数据显示
+                char yawCh[2];
+                for(int i=0;i<2;i++)
+                {
+                    yawCh[i] = buffer[i+9];
+                }
+                unsigned short yawUS = 0;
+                recv_ushort_char(yawUS,yawCh);
+                recv.append(QString::number(yawUS));
+                recv.append(' ');
+                //接收2字节速度并转为int数据显示
+                char vecCh[2];
+                for(int i=0;i<2;i++)
+                {
+                    vecCh[i] = buffer[i+11];
+                }
+                unsigned short vecUS = 0;
+                recv_ushort_char(vecUS,vecCh);
+                recv.append(QString::number(vecUS));
+                recv.append(' ');
+                //接收1字节定位模式并以字符串显示
+                char locMoCh = buffer[13];
+                recv.append(locMoCh);
             }
-            float lonFl = 0.0;
-            recv_float_char(lonFl,lonCh);
-            recv.append(QString::number(lonFl,'f',2));
-            recv.append(' ');
-            //接收4字节经度数据并转为float数据（保留2位小数）显示
-            char latCh[4];
-            for(int i=0;i<4;i++)
-            {
-                latCh[i] = buffer[i+5];
-            }
-            float latFl = 0.0;
-            recv_float_char(latFl,latCh);
-            recv.append(QString::number(latFl,'f',2));
-            recv.append(' ');
-            //接收2字节航向角并转为int数据显示
-            char yawCh[2];
-            for(int i=0;i<2;i++)
-            {
-                yawCh[i] = buffer[i+9];
-            }
-            unsigned short yawUS = 0;
-            recv_ushort_char(yawUS,yawCh);
-            recv.append(QString::number(yawUS));
-            recv.append(' ');
-            //接收2字节速度并转为int数据显示
-            char vecCh[2];
-            for(int i=0;i<2;i++)
-            {
-                vecCh[i] = buffer[i+11];
-            }
-            unsigned short vecUS = 0;
-            recv_ushort_char(vecUS,vecCh);
-            recv.append(QString::number(vecUS));
-            recv.append(' ');
-            //接收1字节定位模式并以字符串显示
-            char locMoCh = buffer[13];
-            recv.append(locMoCh);
         }
     }
 
